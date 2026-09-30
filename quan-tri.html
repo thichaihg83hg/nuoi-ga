@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quản trị – Dự án nuôi gà</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐔</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<script src="chung.js"></script>
+<style>
+  :root {
+    --xanh: #2F9E44; --xanh-dam: #1E6B2E; --xanh-nhat: #EAF6EC; --vang: #F7C548; --vang-nhat: #FFF4D2;
+    --cam: #F08C2E; --cam-nhat: #FFEBD8; --do: #D9480F; --nen: #FFF9EE; --trang: #fff;
+    --chu: #2B2A26; --chu-phu: #6F6A5E; --vien: #EFE6D2;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Be Vietnam Pro", "Segoe UI", Arial, sans-serif; background: var(--nen); color: var(--chu); font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+  button, input, select, textarea { font: inherit; }
+  .an { display: none !important; }
+  .vo { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+  header { background: var(--xanh); color: #fff; padding: calc(12px + env(safe-area-inset-top, 0px)) 0 12px; }
+  .dau { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .dau .lv { font-size: 30px; }
+  .dau .ten { flex: 1; min-width: 180px; }
+  .dau b { display: block; font-size: 17px; }
+  .dau small { opacity: .9; }
+  .dau a, .dau button { color: #fff; background: rgba(255,255,255,.16); border: 0; border-radius: 999px; padding: 6px 14px; text-decoration: none; font-size: 14px; cursor: pointer; }
+  .tom { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .tom span { background: rgba(0,0,0,.14); border-radius: 999px; padding: 3px 12px; font-size: 13.5px; }
+  .tom b { color: var(--vang); }
+
+  .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 14px 0 4px; }
+  .tabs button { flex: none; border: 1px solid var(--vien); background: var(--trang); border-radius: 999px; padding: 7px 14px; cursor: pointer; color: var(--chu-phu); font-weight: 600; }
+  .tabs button.on { background: var(--xanh); border-color: var(--xanh); color: #fff; }
+
+  .khoi { background: var(--trang); border: 1px solid var(--vien); border-radius: 16px; padding: 16px 18px; margin: 12px 0; }
+  .khoi h2 { font-size: 17px; margin-bottom: 10px; }
+  .khoi .mo { color: var(--chu-phu); font-size: 13.5px; margin: -6px 0 12px; }
+  .form { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; align-items: end; }
+  .form label { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; font-weight: 600; color: var(--chu-phu); }
+  .form label.hop { flex-direction: row; align-items: center; gap: 8px; color: var(--chu); padding-bottom: 8px; }
+  .form input:not([type=checkbox]), .form select { padding: 9px 11px; border: 1px solid #E2D7BE; border-radius: 10px; background: #fff; color: var(--chu); font-weight: 500; width: 100%; }
+  .form input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--xanh); }
+  .form .rong { grid-column: 1 / -1; }
+  .hang-nut { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+  .nut { border: 0; border-radius: 10px; padding: 9px 18px; font-weight: 700; cursor: pointer; background: var(--xanh); color: #fff; }
+  .nut:hover { background: var(--xanh-dam); }
+  .nut:disabled { opacity: .5; cursor: not-allowed; }
+  .nut.phu { background: #fff; color: var(--chu); border: 1px solid var(--vien); }
+  .nut.cam { background: var(--cam); }
+  .nut.nho { padding: 4px 10px; font-size: 13px; border-radius: 8px; }
+  .nut.xoa { background: #fff; color: var(--do); border: 1px solid #f3c2ad; }
+  .nut:focus-visible, .tabs button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--vang); outline-offset: 1px; }
+  .goi-y { font-size: 13.5px; background: var(--vang-nhat); color: #6B4F00; padding: 8px 12px; border-radius: 10px; margin-top: 10px; }
+  .dang-sua { font-size: 13px; background: var(--cam-nhat); color: var(--do); padding: 3px 10px; border-radius: 999px; font-weight: 700; }
+
+  .bang-cuon { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 8px; border-bottom: 1px dashed var(--vien); text-align: left; vertical-align: middle; }
+  th { font-size: 12.5px; color: var(--chu-phu); font-weight: 600; white-space: nowrap; }
+  td.so { text-align: right; font-weight: 700; white-space: nowrap; }
+  td.tac { text-align: right; white-space: nowrap; }
+  td.tac .nut { margin-left: 4px; }
+  .nhan-nho { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--vang-nhat); color: #7A5A00; }
+
+  .chia-hop { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .chia-hop .khoi { margin: 0; background: #FFFCF4; }
+  .so-lon { font-size: 26px; font-weight: 800; color: var(--xanh-dam); }
+
+  .luoi-anh { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .o-anh { border: 1px solid var(--vien); border-radius: 12px; overflow: hidden; background: #fff; }
+  .o-anh img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: var(--vien); }
+  .o-anh .nd { padding: 8px; display: grid; gap: 6px; }
+  .o-anh input { padding: 6px 8px; border: 1px solid #E2D7BE; border-radius: 8px; font-size: 13px; width: 100%; }
+
+  .dn { max-width: 380px; margin: 50px auto; text-align: center; }
+  .dn .lv { font-size: 54px; }
+  .dn h1 { font-size: 20px; margin: 6px 0 16px; }
+  .dn input { width: 100%; padding: 11px 13px; border: 1px solid #E2D7BE; border-radius: 10px; margin-bottom: 10px; }
+  .dn .nut { width: 100%; padding: 11px; }
+  .loi { color: var(--do); font-size: 14px; margin-top: 8px; min-height: 20px; }
+  #toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--chu); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px; opacity: 0; transition: .25s; pointer-events: none; z-index: 60; }
+  #toast.hien { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<header>
+  <div class="vo">
+    <div class="dau">
+      <span class="lv">🐔</span>
+      <div class="ten"><b>Quản trị – Dự án nuôi gà</b><small id="tenNhom">Xóm trọ vui vẻ</small></div>
+      <a href="./" target="_blank">Xem trang công khai</a>
+      <button id="nutExcel" class="an">Xuất Excel</button>
+      <button id="nutThoat" class="an">Đăng xuất</button>
+    </div>
+    <div class="tom an" id="tom"></div>
+  </div>
+</header>
+
+<div class="vo">
+  <form class="khoi dn an" id="manDN">
+    <div class="lv">🐔</div>
+    <h1>Đăng nhập thủ quỹ</h1>
+    <input type="email" id="dnEmail" placeholder="Email" autocomplete="username" required>
+    <input type="password" id="dnMk" placeholder="Mật khẩu" autocomplete="current-password" required>
+    <button class="nut" type="submit">Đăng nhập</button>
+    <div class="loi" id="dnLoi"></div>
+  </form>
+
+  <div id="manChinh" class="an">
+    <nav class="tabs" id="tabs">
+      <button data-tab="thu" class="on">💰 Thu</button>
+      <button data-tab="chi">🧾 Chi</button>
+      <button data-tab="anh">📷 Ảnh dự án</button>
+      <button data-tab="ga">🐣 Đàn gà</button>
+      <button data-tab="trung">🥚 Trứng &amp; chia</button>
+      <button data-tab="tiem">💉 Tiêm phòng</button>
+      <button data-tab="caidat">⚙️ Cài đặt</button>
+    </nav>
+
+    <section data-trang="thu">
+      <div class="khoi"><h2 id="tdForm-thu">Thêm khoản thu</h2><div id="form-thu"></div></div>
+      <div class="khoi"><h2>Các khoản thu</h2><div id="ds-thu"></div></div>
+    </section>
+
+    <section data-trang="chi" class="an">
+      <div class="khoi"><h2 id="tdForm-chi">Thêm khoản chi</h2>
+        <p class="mo">Nếu một hộ bỏ tiền túi chi trước, chọn hộ đó ở ô “Người chi hộ”. Quỹ sẽ ghi nợ cho đến khi bấm “Hoàn tiền”.</p>
+        <div id="form-chi"></div></div>
+      <div class="khoi"><h2>Các khoản chi</h2><div id="ds-chi"></div></div>
+    </section>
+
+    <section data-trang="anh" class="an">
+      <div class="khoi"><h2>Thêm ảnh dự án</h2>
+        <p class="mo">Ảnh được tự thu nhỏ trước khi tải lên nên chụp bằng điện thoại cứ tải thẳng.</p>
+        <form class="form" id="formAnh">
+          <label class="rong">Chọn ảnh (chọn được nhiều ảnh) <input type="file" id="anhFile" accept="image/*" multiple required></label>
+          <label>Chú thích <input type="text" id="anhCt" placeholder="Ví dụ: Chuồng gà hoàn thiện"></label>
+          <label>Ngày <input type="date" id="anhNgay"></label>
+        </form>
+        <div class="hang-nut"><button class="nut" id="nutTaiAnh">Tải ảnh lên</button><span id="tienDoAnh" class="mo" style="margin:0"></span></div>
+      </div>
+      <div class="khoi"><h2>Ảnh đang có</h2><div class="luoi-anh" id="dsAnh"></div></div>
+    </section>
+
+    <section data-trang="ga" class="an">
+      <div class="khoi"><h2 id="tdForm-dan_ga">Ghi nhận đàn gà</h2>
+        <p class="mo">Xuất bán có ghi tiền bán thì tiền tự vào quỹ. Chia gà cho các hộ làm ở tab “Trứng &amp; chia”.</p>
+        <div id="form-dan_ga"></div></div>
+      <div class="khoi"><h2>Nhật ký đàn gà</h2><div id="ds-dan_ga"></div></div>
+    </section>
+
+    <section data-trang="trung" class="an">
+      <div class="khoi"><h2 id="tdForm-trung">Ghi số trứng theo ngày</h2>
+        <p class="mo">Mỗi ngày một dòng. Nhập lại ngày đã có sẽ thay số cũ.</p>
+        <div id="form-trung"></div></div>
+      <div class="chia-hop" id="chiaHop"></div>
+      <div class="khoi"><h2>Các lần chia</h2><div id="dsChia"></div></div>
+      <div class="khoi"><h2>Trứng theo ngày</h2><div id="ds-trung"></div></div>
+    </section>
+
+    <section data-trang="tiem" class="an">
+      <div class="khoi"><h2 id="tdForm-tiem_phong">Thêm lịch tiêm phòng</h2><div id="form-tiem_phong"></div></div>
+      <div class="khoi"><h2>Lịch tiêm phòng</h2><div id="ds-tiem_phong"></div></div>
+    </section>
+
+    <section data-trang="caidat" class="an">
+      <div class="khoi"><h2>Thông tin dự án và lịch trực</h2>
+        <form class="form" id="formDuAn">
+          <label>Tên dự án <input name="ten" required></label>
+          <label>Tên nhóm <input name="ten_nhom"></label>
+          <label>Đổi người trực <select name="truc_kieu"><option value="ngay">Mỗi ngày</option><option value="tuan">Mỗi tuần</option></select></label>
+          <label>Lịch trực bắt đầu từ <input type="date" name="truc_bat_dau" required></label>
+        </form>
+        <p class="mo" style="margin:10px 0 0">Thứ tự trực theo cột “Thứ tự” của các hộ bên dưới.</p>
+        <div class="hang-nut"><button class="nut" id="luuDuAn">Lưu</button></div>
+      </div>
+      <div class="khoi"><h2 id="tdForm-ho">Thêm hộ</h2>
+        <p class="mo">Hộ nghỉ tham gia thì bỏ chọn “Đang tham gia” thay vì xóa, để giữ lịch sử góp vốn.</p>
+        <div id="form-ho"></div></div>
+      <div class="khoi"><h2>Các hộ</h2><div id="ds-ho"></div></div>
+      <div class="khoi"><h2 id="tdForm-dot_gop">Thêm đợt góp vốn</h2><div id="form-dot_gop"></div></div>
+      <div class="khoi"><h2>Các đợt góp</h2><div id="ds-dot_gop"></div></div>
+    </section>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let D, T;
+function toast(t) { const e = $("toast"); e.textContent = t; e.classList.add("hien"); clearTimeout(e._h); e._h = setTimeout(() => e.classList.remove("hien"), 2400); }
+function baoLoi(err, viec) { console.error(err); alert(`${viec} không thành công.\n${err.message || err}`); }
+const docTien = s => Number(String(s || "").replace(/[^\d]/g, "")) || 0;
+const tenDot = id => (D.dot_gop.find(o => o.id === id) || {}).ten || "";
+
+/* ===================== CẤU HÌNH CÁC BẢNG ===================== */
+const BANG = {
+  thu: {
+    tieuDe: "khoản thu",
+    truong: [
+      { ten: "ngay", nhan: "Ngày", kieu: "date", batBuoc: true, md: homNay },
+      { ten: "loai", nhan: "Loại thu", kieu: "chon", lua: () => Object.entries(LOAI_THU).filter(([k]) => k !== "ban_ga"), md: "gop_von" },
+      { ten: "ho_id", nhan: "Hộ góp", kieu: "ho", hien: v => v.loai === "gop_von", batBuoc: true },
+      { ten: "dot_id", nhan: "Đợt góp", kieu: "dot", hien: v => v.loai === "gop_von", batBuoc: true },
+      { ten: "so_tien", nhan: "Số tiền (đồng)", kieu: "tien", batBuoc: true },
+      { ten: "noi_dung", nhan: "Nội dung", kieu: "text", hien: v => v.loai !== "gop_von", batBuoc: true }
+    ],
+    cot: [["Ngày", x => ngayVN(x.ngay)],
+      ["Nội dung", x => x.loai === "gop_von" ? `<b>${esc(T.tenHo(x.ho_id))}</b> góp ${esc(tenDot(x.dot_id))}` : esc(x.noi_dung || LOAI_THU[x.loai])],
+      ["Loại", x => LOAI_THU[x.loai]], ["Số tiền", x => tien(x.so_tien), "so"]],
+    ds: () => D.thu,
+    khoaSua: x => x.dan_ga_id ? "Sửa ở tab Đàn gà" : "",
+    goiY: v => {
+      if (v.loai !== "gop_von" || !v.ho_id || !v.dot_id) return "";
+      const g = T.gop.find(x => x.dot.id === Number(v.dot_id)); if (!g) return "";
+      const r = g.dong.find(x => x.ho.id === Number(v.ho_id)); if (!r) return "";
+      return r.thieu ? `Hộ này đã góp ${tien(r.da)}/${tien(r.can)}, còn thiếu <b>${tien(r.thieu)}</b>. <button type="button" class="nut nho cam" data-dien="${r.thieu}">Điền số còn thiếu</button>`
+                     : `Hộ này đã góp đủ ${tien(r.can)} ở đợt này.`;
+    }
+  },
+  chi: {
+    tieuDe: "khoản chi",
+    truong: [
+      { ten: "ngay", nhan: "Ngày", kieu: "date", batBuoc: true, md: homNay },
+      { ten: "nhom", nhan: "Nhóm chi", kieu: "chon", lua: () => Object.entries(NHOM_CHI), md: "thuc_an" },
+      { ten: "noi_dung", nhan: "Nội dung", kieu: "text", batBuoc: true },
+      { ten: "so_tien", nhan: "Số tiền (đồng)", kieu: "tien", batBuoc: true },
+      { ten: "nguoi_ung_id", nhan: "Người chi hộ", kieu: "ho", rong: "— Chi thẳng từ quỹ —" },
+      { ten: "da_hoan", nhan: "Quỹ đã hoàn tiền", kieu: "check", hien: v => !!v.nguoi_ung_id },
+      { ten: "ngay_hoan", nhan: "Ngày hoàn", kieu: "date", hien: v => !!v.nguoi_ung_id && v.da_hoan, md: homNay }
+    ],
+    cot: [["Ngày", x => ngayVN(x.ngay)],
+      ["Nội dung", x => esc(x.noi_dung) + (x.nguoi_ung_id ? `<br><small>${esc(T.tenHo(x.nguoi_ung_id))} chi hộ ${x.da_hoan ? "· đã hoàn " + ngayVN(x.ngay_hoan) : '<span class="nhan-nho">Chưa hoàn</span>'}</small>` : "")],
+      ["Nhóm", x => NHOM_CHI[x.nhom]], ["Số tiền", x => tien(x.so_tien), "so"]],
+    ds: () => D.chi,
+    nutThem: x => x.nguoi_ung_id && !x.da_hoan ? [["Hoàn tiền", "hoan", "cam"]] : []
+  },
+  dan_ga: {
+    tieuDe: "ghi nhận",
+    truong: [
+      { ten: "ngay", nhan: "Ngày", kieu: "date", batBuoc: true, md: homNay },
+      { ten: "loai", nhan: "Loại", kieu: "chon", lua: () => Object.entries(LOAI_GA).filter(([k]) => k !== "xuat_chia"), md: "nhap" },
+      { ten: "so_con", nhan: "Số con", kieu: "so", batBuoc: true, min: 1 },
+      { ten: "tien_ban", nhan: "Tiền bán (đồng)", kieu: "tien", ao: true, hien: v => v.loai === "xuat_ban" },
+      { ten: "ghi_chu", nhan: "Ghi chú", kieu: "text" }
+    ],
+    cot: [["Ngày", x => ngayVN(x.ngay)], ["Loại", x => LOAI_GA[x.loai]],
+      ["Số con", x => (x.loai === "nhap" ? "+" : "−") + so(x.so_con), "so"],
+      ["Ghi chú", x => esc(x.ghi_chu || "") + (x.loai === "xuat_ban" ? (() => { const t = D.thu.find(o => o.dan_ga_id === x.id); return t ? ` <span class="nhan-nho">Bán ${tien(t.so_tien)}</span>` : ""; })() : "")]],
+    ds: () => D.dan_ga,
+    khoaSua: x => x.chia_id ? "Xóa ở tab Trứng & chia" : "",
+    napThem: x => { const t = D.thu.find(o => o.dan_ga_id === x.id); return { tien_ban: t ? t.so_tien : "" }; },
+    sauLuu: async (v, id) => {
+      const cu = D.thu.find(o => o.dan_ga_id === id);
+      const tb = v.loai === "xuat_ban" ? docTien(v.tien_ban) : 0;
+      if (tb > 0) {
+        const hang = { du_an: DA, ngay: v.ngay, loai: "ban_ga", so_tien: tb, noi_dung: `Bán ${v.so_con} con gà`, dan_ga_id: id };
+        const r = cu ? await sb.from("thu").update(hang).eq("id", cu.id) : await sb.from("thu").insert(hang);
+        if (r.error) throw r.error;
+      } else if (cu) {
+        const r = await sb.from("thu").delete().eq("id", cu.id); if (r.error) throw r.error;
+      }
+    }
+  },
+  trung: {
+    tieuDe: "số trứng", upsert: "du_an,ngay",
+    truong: [
+      { ten: "ngay", nhan: "Ngày", kieu: "date", batBuoc: true, md: homNay },
+      { ten: "so_qua", nhan: "Số quả", kieu: "so", batBuoc: true, min: 0 }
+    ],
+    cot: [["Ngày", x => ngayVN(x.ngay)], ["Số quả", x => so(x.so_qua), "so"]],
+    ds: () => D.trung
+  },
+  tiem_phong: {
+    tieuDe: "lịch tiêm",
+    truong: [
+      { ten: "ten", nhan: "Tên mũi tiêm / vắc xin", kieu: "text", batBuoc: true },
+      { ten: "ngay_du_kien", nhan: "Ngày dự kiến", kieu: "date", batBuoc: true, md: homNay },
+      { ten: "da_tiem", nhan: "Đã tiêm", kieu: "check" },
+      { ten: "ngay_tiem", nhan: "Ngày tiêm", kieu: "date", hien: v => v.da_tiem, md: homNay },
+      { ten: "ghi_chu", nhan: "Ghi chú", kieu: "text" }
+    ],
+    cot: [["Mũi tiêm", x => `<b>${esc(x.ten)}</b>${x.ghi_chu ? `<br><small>${esc(x.ghi_chu)}</small>` : ""}`], ["Dự kiến", x => ngayVN(x.ngay_du_kien)],
+      ["Trạng thái", x => x.da_tiem ? `Đã tiêm ${ngayVN(x.ngay_tiem)}` : (x.ngay_du_kien < homNay() ? '<span class="nhan-nho" style="background:#FDE7DF;color:#D9480F">Quá hạn</span>' : "Chưa tiêm")]],
+    ds: () => D.tiem_phong,
+    nutThem: x => x.da_tiem ? [] : [["Đã tiêm hôm nay", "tiem", "cam"]]
+  },
+  ho: {
+    tieuDe: "hộ",
+    truong: [
+      { ten: "ten", nhan: "Tên hộ / người đại diện", kieu: "text", batBuoc: true },
+      { ten: "thu_tu", nhan: "Thứ tự (dùng cho lịch trực)", kieu: "so", md: () => D.ho.length + 1 },
+      { ten: "hoat_dong", nhan: "Đang tham gia", kieu: "check", md: true }
+    ],
+    cot: [["TT", x => x.thu_tu], ["Tên", x => esc(x.ten)], ["Trạng thái", x => x.hoat_dong ? "Đang tham gia" : '<span class="nhan-nho">Đã nghỉ</span>']],
+    ds: () => D.ho
+  },
+  dot_gop: {
+    tieuDe: "đợt góp",
+    truong: [
+      { ten: "ten", nhan: "Tên đợt", kieu: "text", batBuoc: true, md: () => `Đợt ${D.dot_gop.length + 1}` },
+      { ten: "muc_gop", nhan: "Mức góp mỗi hộ (đồng)", kieu: "tien", batBuoc: true },
+      { ten: "han", nhan: "Hạn góp", kieu: "date" },
+      { ten: "thu_tu", nhan: "Thứ tự", kieu: "so", md: () => D.dot_gop.length + 1 }
+    ],
+    cot: [["Đợt", x => esc(x.ten)], ["Mức góp", x => tien(x.muc_gop), "so"], ["Hạn", x => ngayVN(x.han)],
+      ["Tiến độ", x => { const g = T.gop.find(o => o.dot.id === x.id); return g ? `${g.soHoDu}/${g.dong.length} hộ đủ` : ""; }]],
+    ds: () => D.dot_gop
+  }
+};
+
+/* ===================== FORM VÀ DANH SÁCH DÙNG CHUNG ===================== */
+const dangSua = {};
+
+function giaTriMacDinh(f) { return typeof f.md === "function" ? f.md() : (f.md ?? ""); }
+
+function oNhap(f, v) {
+  const gt = v[f.ten] ?? "";
+  if (f.kieu === "check") return `<label class="hop"><input type="checkbox" name="${f.ten}" ${gt ? "checked" : ""}> ${f.nhan}</label>`;
+  let o;
+  if (f.kieu === "chon") o = `<select name="${f.ten}">${f.lua().map(([k, n]) => `<option value="${k}" ${String(gt) === k ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>`;
+  else if (f.kieu === "ho") o = `<select name="${f.ten}">${f.rong ? `<option value="">${f.rong}</option>` : '<option value="">— Chọn hộ —</option>'}${D.ho.filter(h => h.hoat_dong || h.id === Number(gt)).map(h => `<option value="${h.id}" ${Number(gt) === h.id ? "selected" : ""}>${esc(h.ten)}</option>`).join("")}</select>`;
+  else if (f.kieu === "dot") o = `<select name="${f.ten}"><option value="">— Chọn đợt —</option>${D.dot_gop.map(d => `<option value="${d.id}" ${Number(gt) === d.id ? "selected" : ""}>${esc(d.ten)} (${tien(d.muc_gop)})</option>`).join("")}</select>`;
+  else if (f.kieu === "tien") o = `<input name="${f.ten}" inputmode="numeric" autocomplete="off" value="${gt === "" || gt === null ? "" : so(typeof gt === "string" ? docTien(gt) : gt)}" placeholder="0">`;
+  else if (f.kieu === "so") o = `<input name="${f.ten}" type="number" inputmode="numeric" ${f.min !== undefined ? `min="${f.min}"` : ""} value="${esc(gt)}">`;
+  else if (f.kieu === "date") o = `<input name="${f.ten}" type="date" value="${esc(gt)}">`;
+  else o = `<input name="${f.ten}" value="${esc(gt)}">`;
+  return `<label>${f.nhan}${f.batBuoc ? " *" : ""}${o}</label>`;
+}
+
+function docForm(k) {
+  const el = $("form-" + k), v = {};
+  BANG[k].truong.forEach(f => {
+    const i = el.querySelector(`[name="${f.ten}"]`);
+    if (!i) { v[f.ten] = undefined; return; }
+    v[f.ten] = f.kieu === "check" ? i.checked : i.value;
+  });
+  return v;
+}
+
+function veForm(k, v) {
+  const c = BANG[k];
+  if (!v) { v = {}; c.truong.forEach(f => v[f.ten] = giaTriMacDinh(f)); }
+  const hien = c.truong.filter(f => !f.hien || f.hien(v));
+  $("form-" + k).innerHTML = `
+    <form class="form" onsubmit="return false">${hien.map(f => oNhap(f, v)).join("")}</form>
+    <div class="goi-y an" id="goiY-${k}"></div>
+    <div class="hang-nut">
+      <button class="nut" data-luu="${k}">${dangSua[k] ? "Lưu thay đổi" : "Thêm " + c.tieuDe}</button>
+      ${dangSua[k] ? `<button class="nut phu" data-huy="${k}">Hủy sửa</button><span class="dang-sua">Đang sửa</span>` : ""}
+    </div>`;
+  $("tdForm-" + k) && ($("tdForm-" + k).textContent = (dangSua[k] ? "Sửa " : "Thêm ") + c.tieuDe);
+  capNhatGoiY(k);
+}
+
+function capNhatGoiY(k) {
+  const g = $("goiY-" + k); if (!g || !BANG[k].goiY) return;
+  const t = BANG[k].goiY(docForm(k));
+  g.innerHTML = t; g.classList.toggle("an", !t);
+}
+
+function veDs(k) {
+  const c = BANG[k], ds = c.ds();
+  $("ds-" + k).innerHTML = ds.length ? `<div class="bang-cuon"><table>
+    <thead><tr>${c.cot.map(([n, , l]) => `<th${l === "so" ? ' style="text-align:right"' : ""}>${n}</th>`).join("")}<th></th></tr></thead>
+    <tbody>${ds.map(x => `<tr>${c.cot.map(([, f, l]) => `<td class="${l || ""}">${f(x)}</td>`).join("")}
+      <td class="tac">${(c.nutThem ? c.nutThem(x) : []).map(([n, a, m]) => `<button class="nut nho ${m || ""}" data-bang="${k}" data-tacvu="${a}" data-id="${x.id}">${n}</button>`).join("")}
+      ${c.khoaSua && c.khoaSua(x) ? `<small style="color:var(--chu-phu)">${c.khoaSua(x)}</small>` :
+        `<button class="nut nho phu" data-bang="${k}" data-tacvu="sua" data-id="${x.id}">Sửa</button><button class="nut nho xoa" data-bang="${k}" data-tacvu="xoa" data-id="${x.id}">Xóa</button>`}</td></tr>`).join("")}</tbody>
+  </table></div>` : `<p class="mo" style="margin:0">Chưa có dữ liệu.</p>`;
+}
+
+async function luu(k) {
+  const c = BANG[k], v = docForm(k), hang = { du_an: DA };
+  for (const f of c.truong) {
+    const hien = !f.hien || f.hien(v);
+    if (f.ao) continue;
+    let gt = hien ? v[f.ten] : null;
+    if (f.kieu === "tien") gt = hien ? docTien(gt) : null;
+    else if (f.kieu === "so") gt = hien && gt !== "" ? Number(gt) : null;
+    else if (f.kieu === "ho" || f.kieu === "dot") gt = hien && gt ? Number(gt) : null;
+    else if (f.kieu === "check") gt = hien ? !!gt : false;
+    else if (typeof gt === "string") gt = gt.trim() || null;
+    if (hien && f.batBuoc && (gt === null || gt === "" || (f.kieu === "tien" && !gt))) { alert(`Chưa nhập “${f.nhan}”.`); return; }
+    hang[f.ten] = gt;
+  }
+  const nut = document.querySelector(`[data-luu="${k}"]`); nut.disabled = true;
+  try {
+    let r;
+    if (dangSua[k]) r = await sb.from(k).update(hang).eq("id", dangSua[k]).select().single();
+    else if (c.upsert) r = await sb.from(k).upsert(hang, { onConflict: c.upsert }).select().single();
+    else r = await sb.from(k).insert(hang).select().single();
+    if (r.error) throw r.error;
+    if (c.sauLuu) await c.sauLuu(v, r.data.id);
+    toast(dangSua[k] ? "Đã lưu thay đổi" : "Đã thêm");
+    dangSua[k] = null;
+    await taiLai();
+    veForm(k);
+  } catch (err) { baoLoi(err, "Lưu"); }
+  nut.disabled = false;
+}
+
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.luu) return luu(b.dataset.luu);
+  if (b.dataset.huy) { dangSua[b.dataset.huy] = null; return veForm(b.dataset.huy); }
+  if (b.dataset.dien) { const i = $("form-thu").querySelector('[name="so_tien"]'); i.value = so(b.dataset.dien); return; }
+  const k = b.dataset.bang, id = Number(b.dataset.id), tv = b.dataset.tacvu;
+  if (!k || !tv) return;
+  const x = BANG[k].ds().find(o => o.id === id);
+  if (tv === "sua") {
+    dangSua[k] = id;
+    veForm(k, { ...x, ...(BANG[k].napThem ? BANG[k].napThem(x) : {}) });
+    $("form-" + k).scrollIntoView({ behavior: "smooth", block: "center" });
+  } else if (tv === "xoa") {
+    if (!confirm("Xóa mục này?")) return;
+    const r = await sb.from(k).delete().eq("id", id);
+    if (r.error) return baoLoi(r.error, "Xóa");
+    toast("Đã xóa"); if (dangSua[k] === id) { dangSua[k] = null; veForm(k); } await taiLai();
+  } else if (tv === "hoan") {
+    if (!confirm(`Xác nhận quỹ đã hoàn ${tien(x.so_tien)} cho ${T.tenHo(x.nguoi_ung_id)}?`)) return;
+    const r = await sb.from("chi").update({ da_hoan: true, ngay_hoan: homNay() }).eq("id", id);
+    if (r.error) return baoLoi(r.error, "Hoàn tiền");
+    toast("Đã ghi hoàn tiền"); await taiLai();
+  } else if (tv === "tiem") {
+    const r = await sb.from("tiem_phong").update({ da_tiem: true, ngay_tiem: homNay() }).eq("id", id);
+    if (r.error) return baoLoi(r.error, "Cập nhật");
+    toast("Đã ghi nhận tiêm"); await taiLai();
+  }
+});
+
+document.addEventListener("change", e => {
+  const f = e.target.closest("[id^='form-']"); if (!f) return;
+  const k = f.id.slice(5); if (!BANG[k]) return;
+  const v = docForm(k), c = BANG[k];
+  const truocHien = c.truong.filter(t => f.querySelector(`[name="${t.ten}"]`)).map(t => t.ten).join();
+  const sauHien = c.truong.filter(t => !t.hien || t.hien(v)).map(t => t.ten).join();
+  if (truocHien !== sauHien) {
+    c.truong.forEach(t => { if (v[t.ten] === undefined) v[t.ten] = giaTriMacDinh(t); });
+    veForm(k, v);
+  } else capNhatGoiY(k);
+});
+document.addEventListener("input", e => {
+  const i = e.target;
+  const f = i.closest("[id^='form-']"); if (!f) return;
+  const k = f.id.slice(5); const t = BANG[k] && BANG[k].truong.find(x => x.ten === i.name);
+  if (t && t.kieu === "tien") { const n = docTien(i.value); i.value = n ? so(n) : ""; }
+});
+
+/* ===================== CHIA TRỨNG, CHIA GÀ ===================== */
+function veChia() {
+  const n = T.hoHoatDong.length, moi = n ? Math.floor(T.trungTon / n) : 0;
+  $("chiaHop").innerHTML = `
+    <div class="khoi"><h2>🥚 Chia trứng</h2>
+      <p>Trứng chưa chia: <span class="so-lon">${so(T.trungTon)}</span> quả · ${n} hộ</p>
+      <div class="form" style="margin-top:8px"><label>Mỗi hộ nhận (quả) <input type="number" id="chiaTrung" min="1" value="${moi || ""}"></label>
+        <label>Ngày chia <input type="date" id="ngayChiaTrung" value="${homNay()}"></label></div>
+      <div class="hang-nut"><button class="nut" id="nutChiaTrung" ${moi ? "" : "disabled"}>Chia trứng</button>
+        <span class="mo" style="margin:0">${moi ? `Chia đều tối đa ${moi} quả/hộ, còn dư ${T.trungTon - moi * n} quả` : "Chưa đủ trứng để chia đều"}</span></div>
+    </div>
+    <div class="khoi"><h2>🐔 Chia gà</h2>
+      <p>Gà hiện có: <span class="so-lon">${so(T.gaHienCo)}</span> con · ${n} hộ</p>
+      <div class="form" style="margin-top:8px"><label>Mỗi hộ nhận (con) <input type="number" id="chiaGa" min="1" value="1"></label>
+        <label>Ngày chia <input type="date" id="ngayChiaGa" value="${homNay()}"></label></div>
+      <div class="hang-nut"><button class="nut" id="nutChiaGa" ${T.gaHienCo >= n && n ? "" : "disabled"}>Chia gà</button>
+        <span class="mo" style="margin:0">Tối đa ${n ? Math.floor(T.gaHienCo / n) : 0} con/hộ</span></div>
+    </div>`;
+  $("nutChiaTrung").onclick = async () => {
+    const m = Number($("chiaTrung").value);
+    if (!(m >= 1) || m * n > T.trungTon) return alert("Số trứng mỗi hộ vượt quá số trứng chưa chia.");
+    const r = await sb.from("chia").insert({ du_an: DA, ngay: $("ngayChiaTrung").value || homNay(), loai: "trung", moi_ho: m, so_ho: n, ghi_chu: `${m} quả/hộ` });
+    if (r.error) return baoLoi(r.error, "Chia trứng");
+    toast(`Đã chia ${m} quả cho mỗi hộ`); taiLai();
+  };
+  $("nutChiaGa").onclick = async () => {
+    const m = Number($("chiaGa").value);
+    if (!(m >= 1) || m * n > T.gaHienCo) return alert("Số gà mỗi hộ vượt quá số gà hiện có.");
+    if (!confirm(`Chia ${m} con cho mỗi hộ, tổng ${m * n} con?`)) return;
+    const ngay = $("ngayChiaGa").value || homNay();
+    const r = await sb.from("chia").insert({ du_an: DA, ngay, loai: "ga", moi_ho: m, so_ho: n, ghi_chu: `${m} con/hộ` }).select().single();
+    if (r.error) return baoLoi(r.error, "Chia gà");
+    const r2 = await sb.from("dan_ga").insert({ du_an: DA, ngay, loai: "xuat_chia", so_con: m * n, ghi_chu: `Chia ${m} con/hộ`, chia_id: r.data.id });
+    if (r2.error) { await sb.from("chia").delete().eq("id", r.data.id); return baoLoi(r2.error, "Chia gà"); }
+    toast(`Đã chia ${m} con cho mỗi hộ`); taiLai();
+  };
+  $("dsChia").innerHTML = D.chia.length ? `<div class="bang-cuon"><table><thead><tr><th>Ngày</th><th>Loại</th><th style="text-align:right">Mỗi hộ</th><th style="text-align:right">Tổng</th><th></th></tr></thead><tbody>
+    ${D.chia.map(x => `<tr><td>${ngayVN(x.ngay)}</td><td>${x.loai === "trung" ? "Trứng" : "Gà"}</td><td class="so">${so(x.moi_ho)} ${x.loai === "trung" ? "quả" : "con"}</td>
+    <td class="so">${so(x.moi_ho * x.so_ho)}</td><td class="tac"><button class="nut nho xoa" data-xoachia="${x.id}">Xóa</button></td></tr>`).join("")}</tbody></table></div>`
+    : `<p class="mo" style="margin:0">Chưa chia lần nào.</p>`;
+}
+$("dsChia").addEventListener("click", async e => {
+  const b = e.target.closest("[data-xoachia]"); if (!b) return;
+  if (!confirm("Xóa lần chia này? (Nếu là chia gà, số gà sẽ được cộng trả lại)")) return;
+  const r = await sb.from("chia").delete().eq("id", Number(b.dataset.xoachia));
+  if (r.error) return baoLoi(r.error, "Xóa");
+  toast("Đã xóa"); taiLai();
+});
+
+/* ===================== ẢNH ===================== */
+function thuNho(file, rong = 1600) {
+  return new Promise((ok, loi) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, rong / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      c.toBlob(b => b ? ok(b) : loi(new Error("Không xử lý được ảnh")), "image/jpeg", 0.85);
+    };
+    img.onerror = () => loi(new Error("File không phải ảnh hợp lệ"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+$("nutTaiAnh").onclick = async () => {
+  const files = [...$("anhFile").files]; if (!files.length) return alert("Chưa chọn ảnh.");
+  const nut = $("nutTaiAnh"); nut.disabled = true;
+  try {
+    for (let i = 0; i < files.length; i++) {
+      $("tienDoAnh").textContent = `Đang tải ${i + 1}/${files.length}…`;
+      const blob = await thuNho(files[i]);
+      const p = `${DA}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
+      const up = await sb.storage.from(BUCKET).upload(p, blob, { contentType: "image/jpeg" });
+      if (up.error) throw up.error;
+      const r = await sb.from("anh").insert({ du_an: DA, duong_dan: p, chu_thich: $("anhCt").value.trim() || null, ngay: $("anhNgay").value || homNay() });
+      if (r.error) { await sb.storage.from(BUCKET).remove([p]); throw r.error; }
+    }
+    $("anhFile").value = ""; $("anhCt").value = "";
+    toast(`Đã tải ${files.length} ảnh`); taiLai();
+  } catch (err) { baoLoi(err, "Tải ảnh"); }
+  $("tienDoAnh").textContent = ""; nut.disabled = false;
+};
+function veAnh() {
+  $("dsAnh").innerHTML = D.anh.length ? D.anh.map(a => `
+    <div class="o-anh" data-id="${a.id}" data-p="${esc(a.duong_dan)}">
+      <img src="${esc(duongAnh(a.duong_dan))}" alt="" loading="lazy">
+      <div class="nd"><input data-f="chu_thich" value="${esc(a.chu_thich || "")}" placeholder="Chú thích">
+        <input data-f="ngay" type="date" value="${a.ngay}">
+        <div class="hang-nut" style="margin:0"><button class="nut nho" data-luuanh>Lưu</button><button class="nut nho xoa" data-xoaanh>Xóa</button></div></div>
+    </div>`).join("") : `<p class="mo" style="margin:0">Chưa có ảnh nào.</p>`;
+}
+$("dsAnh").addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const o = b.closest(".o-anh"), id = Number(o.dataset.id);
+  if (b.hasAttribute("data-luuanh")) {
+    const r = await sb.from("anh").update({ chu_thich: o.querySelector('[data-f="chu_thich"]').value.trim() || null, ngay: o.querySelector('[data-f="ngay"]').value || homNay() }).eq("id", id);
+    if (r.error) return baoLoi(r.error, "Lưu ảnh");
+    toast("Đã lưu"); taiLai();
+  } else if (b.hasAttribute("data-xoaanh")) {
+    if (!confirm("Xóa ảnh này?")) return;
+    const r = await sb.from("anh").delete().eq("id", id);
+    if (r.error) return baoLoi(r.error, "Xóa ảnh");
+    await sb.storage.from(BUCKET).remove([o.dataset.p]);
+    toast("Đã xóa ảnh"); taiLai();
+  }
+});
+
+/* ===================== CÀI ĐẶT DỰ ÁN ===================== */
+function veDuAn() {
+  const f = $("formDuAn");
+  ["ten", "ten_nhom", "truc_kieu", "truc_bat_dau"].forEach(k => f.elements[k].value = D.du_an[k] || "");
+}
+$("luuDuAn").onclick = async () => {
+  const f = $("formDuAn");
+  const hang = { ma: DA, ten: f.elements.ten.value.trim() || "Dự án nuôi gà", ten_nhom: f.elements.ten_nhom.value.trim() || null,
+    truc_kieu: f.elements.truc_kieu.value, truc_bat_dau: f.elements.truc_bat_dau.value || homNay() };
+  const r = await sb.from("du_an").upsert(hang, { onConflict: "ma" });
+  if (r.error) return baoLoi(r.error, "Lưu thông tin dự án");
+  toast("Đã lưu"); taiLai();
+};
+
+/* ===================== TẢI LẠI, VẼ LẠI ===================== */
+async function taiLai() {
+  try { D = await taiTatCa(); T = tinhToan(D); } catch (err) { return baoLoi(err, "Tải dữ liệu"); }
+  $("tenNhom").textContent = `${D.du_an.ten_nhom || ""} · mã ${D.du_an.ma}`;
+  $("tom").innerHTML = `<span>Quỹ còn: <b>${tien(T.quyConLai)}</b></span><span>Đang nợ: <b>${tien(T.no)}</b></span><span>Gà: <b>${so(T.gaHienCo)}</b> con</span><span>Trứng chưa chia: <b>${so(T.trungTon)}</b></span>`;
+  Object.keys(BANG).forEach(k => { veDs(k); if (!dangSua[k]) veForm(k); });
+  veChia(); veAnh(); veDuAn();
+}
+
+$("tabs").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("[data-trang]").forEach(s => s.classList.toggle("an", s.dataset.trang !== b.dataset.tab));
+});
+
+/* ===================== ĐĂNG NHẬP ===================== */
+async function kiemTra() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { $("manDN").classList.remove("an"); return; }
+  const { data: q } = await sb.from("quan_tri").select("user_id").maybeSingle();
+  if (!q) { $("manDN").classList.remove("an"); $("dnLoi").textContent = "Tài khoản này chưa được cấp quyền thủ quỹ."; await sb.auth.signOut(); return; }
+  $("manDN").classList.add("an"); $("manChinh").classList.remove("an");
+  ["tom", "nutThoat", "nutExcel"].forEach(i => $(i).classList.remove("an"));
+  $("anhNgay").value = homNay();
+  await taiLai();
+}
+$("manDN").addEventListener("submit", async e => {
+  e.preventDefault(); $("dnLoi").textContent = "";
+  const { error } = await sb.auth.signInWithPassword({ email: $("dnEmail").value.trim(), password: $("dnMk").value });
+  if (error) { $("dnLoi").textContent = "Email hoặc mật khẩu không đúng."; return; }
+  kiemTra();
+});
+$("nutThoat").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$("nutExcel").onclick = () => xuatExcel(D, T);
+kiemTra();
+</script>
+</body>
+</html>
