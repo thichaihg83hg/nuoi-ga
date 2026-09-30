@@ -25,7 +25,7 @@ const THU_VN = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Nă
 
 /* ---------- Tải toàn bộ dữ liệu của dự án ---------- */
 async function taiTatCa() {
-  const bang = ["du_an", "ho", "dot_gop", "thu", "chi", "dan_ga", "trung", "chia", "tiem_phong", "anh"];
+  const bang = ["du_an", "ho", "dot_gop", "thu", "chi", "dan_ga", "trung", "chia", "tiem_phong", "anh", "bua_an"];
   const kq = await Promise.all(bang.map(b => {
     const q = sb.from(b).select("*");
     return b === "du_an" ? q.eq("ma", DA) : q.eq("du_an", DA);
@@ -36,7 +36,7 @@ async function taiTatCa() {
   const theoNgay = (a, b) => (b.ngay || "").localeCompare(a.ngay || "") || b.id - a.id;
   d.ho.sort((a, b) => a.thu_tu - b.thu_tu || a.id - b.id);
   d.dot_gop.sort((a, b) => a.thu_tu - b.thu_tu || a.id - b.id);
-  ["thu", "chi", "dan_ga", "trung", "chia", "anh"].forEach(b => d[b].sort(theoNgay));
+  ["thu", "chi", "dan_ga", "trung", "chia", "anh", "bua_an"].forEach(b => d[b].sort(theoNgay));
   d.tiem_phong.sort((a, b) => a.ngay_du_kien.localeCompare(b.ngay_du_kien));
   return d;
 }
@@ -76,12 +76,16 @@ function tinhToan(d) {
   // Đàn gà
   const ga = l => cong(d.dan_ga.filter(x => x.loai === l), x => x.so_con);
   t.gaNhap = ga("nhap"); t.gaHao = ga("hao_hut"); t.gaBan = ga("xuat_ban"); t.gaChia = ga("xuat_chia");
-  t.gaHienCo = t.gaNhap - t.gaHao - t.gaBan - t.gaChia;
+  // Bữa ăn chung
+  t.soBua = d.bua_an.length;
+  t.gaAn = cong(d.bua_an, x => x.so_ga);
+  t.trungAn = cong(d.bua_an, x => x.so_trung);
+  t.gaHienCo = t.gaNhap - t.gaHao - t.gaBan - t.gaChia - t.gaAn;
 
   // Trứng và chia
   t.trungTong = cong(d.trung, x => x.so_qua);
   t.trungDaChia = cong(d.chia.filter(x => x.loai === "trung"), x => x.moi_ho * x.so_ho);
-  t.trungTon = t.trungTong - t.trungDaChia;
+  t.trungTon = t.trungTong - t.trungDaChia - t.trungAn;
   t.trungMoiHo = cong(d.chia.filter(x => x.loai === "trung"), x => x.moi_ho);
   t.gaMoiHo = cong(d.chia.filter(x => x.loai === "ga"), x => x.moi_ho);
   const thang = homNay().slice(0, 7);
@@ -130,6 +134,7 @@ function xuatExcel(d, t) {
     ["Tổng chi (đồng)", t.tongChi], ["Quỹ đã chi (đồng)", t.quyDaChi], ["Quỹ còn lại (đồng)", t.quyConLai],
     ["Quỹ đang nợ người chi hộ (đồng)", t.no],
     ["Số gà hiện có (con)", t.gaHienCo], ["Tổng trứng thu (quả)", t.trungTong], ["Trứng chưa chia (quả)", t.trungTon],
+    ["Số bữa ăn chung", t.soBua], ["Gà dùng cho bữa ăn chung (con)", t.gaAn], ["Trứng dùng cho bữa ăn chung (quả)", t.trungAn],
     ["Mỗi hộ đã nhận trứng (quả)", t.trungMoiHo], ["Mỗi hộ đã nhận gà (con)", t.gaMoiHo]
   ], [38, 18]);
   const gopDong = [["Đợt góp", "Hộ", "Mức góp", "Đã góp", "Còn thiếu"]];
@@ -143,6 +148,8 @@ function xuatExcel(d, t) {
   them("Trung", [["Ngày", "Số quả"], ...d.trung.map(x => [ngayVN(x.ngay), x.so_qua])], [11, 9]);
   them("Chia", [["Ngày", "Loại", "Mỗi hộ", "Số hộ", "Tổng", "Ghi chú"],
     ...d.chia.map(x => [ngayVN(x.ngay), x.loai === "trung" ? "Trứng (quả)" : "Gà (con)", x.moi_ho, x.so_ho, x.moi_ho * x.so_ho, x.ghi_chu || ""])], [11, 12, 8, 8, 8, 30]);
+  them("Bua an chung", [["Ngày", "Bữa ăn", "Số gà", "Số trứng", "Ghi chú"],
+    ...d.bua_an.map(x => [ngayVN(x.ngay), x.ten || "", x.so_ga, x.so_trung, x.ghi_chu || ""])], [11, 28, 8, 9, 34]);
   XLSX.writeFile(wb, `DuAnNuoiGa_${d.du_an.ma}_${homNay()}.xlsx`);
 }
 

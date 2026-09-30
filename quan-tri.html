@@ -121,6 +121,7 @@
       <button data-tab="anh">📷 Ảnh dự án</button>
       <button data-tab="ga">🐣 Đàn gà</button>
       <button data-tab="trung">🥚 Trứng &amp; chia</button>
+      <button data-tab="bua">🍲 Bữa ăn chung</button>
       <button data-tab="tiem">💉 Tiêm phòng</button>
       <button data-tab="caidat">⚙️ Cài đặt</button>
     </nav>
@@ -164,6 +165,13 @@
       <div class="chia-hop" id="chiaHop"></div>
       <div class="khoi"><h2>Các lần chia</h2><div id="dsChia"></div></div>
       <div class="khoi"><h2>Trứng theo ngày</h2><div id="ds-trung"></div></div>
+    </section>
+
+    <section data-trang="bua" class="an">
+      <div class="khoi"><h2 id="tdForm-bua_an">Thêm bữa ăn chung</h2>
+        <p class="mo">Số gà tự trừ khỏi đàn, số trứng tự trừ khỏi phần trứng chưa chia.</p>
+        <div id="form-bua_an"></div></div>
+      <div class="khoi"><h2>Các bữa ăn chung</h2><div id="ds-bua_an"></div></div>
     </section>
 
     <section data-trang="tiem" class="an">
@@ -279,6 +287,29 @@ const BANG = {
     cot: [["Ngày", x => ngayVN(x.ngay)], ["Số quả", x => so(x.so_qua), "so"]],
     ds: () => D.trung
   },
+  bua_an: {
+    tieuDe: "bữa ăn chung",
+    truong: [
+      { ten: "ngay", nhan: "Ngày", kieu: "date", batBuoc: true, md: homNay },
+      { ten: "ten", nhan: "Tên bữa / dịp", kieu: "text", md: "Bữa ăn chung" },
+      { ten: "so_ga", nhan: "Số gà dùng (con)", kieu: "so", min: 0, md: 0 },
+      { ten: "so_trung", nhan: "Số trứng dùng (quả)", kieu: "so", min: 0, md: 0 },
+      { ten: "ghi_chu", nhan: "Ghi chú", kieu: "text" }
+    ],
+    cot: [["Ngày", x => ngayVN(x.ngay)], ["Bữa ăn", x => esc(x.ten || "Bữa ăn chung") + (x.ghi_chu ? `<br><small>${esc(x.ghi_chu)}</small>` : "")],
+      ["Gà", x => so(x.so_ga), "so"], ["Trứng", x => so(x.so_trung), "so"]],
+    ds: () => D.bua_an,
+    kiemTra: h => {
+      h.so_ga = h.so_ga || 0; h.so_trung = h.so_trung || 0;
+      if (h.so_ga < 0 || h.so_trung < 0) return "Số gà, số trứng không được âm.";
+      if (!h.so_ga && !h.so_trung) return "Cần nhập số gà hoặc số trứng đã dùng.";
+      const cu = dangSua.bua_an ? D.bua_an.find(o => o.id === dangSua.bua_an) : null;
+      const gaCo = T.gaHienCo + (cu ? cu.so_ga : 0), trungCo = T.trungTon + (cu ? cu.so_trung : 0);
+      if (h.so_ga > gaCo) return `Đàn chỉ còn ${gaCo} con gà.`;
+      if (h.so_trung > trungCo) return `Chỉ còn ${trungCo} quả trứng chưa chia.`;
+      return "";
+    }
+  },
   tiem_phong: {
     tieuDe: "lịch tiêm",
     truong: [
@@ -392,6 +423,7 @@ async function luu(k) {
     if (hien && f.batBuoc && (gt === null || gt === "" || (f.kieu === "tien" && !gt))) { alert(`Chưa nhập “${f.nhan}”.`); return; }
     hang[f.ten] = gt;
   }
+  if (c.kiemTra) { const loi = c.kiemTra(hang); if (loi) { alert(loi); return; } }
   const nut = document.querySelector(`[data-luu="${k}"]`); nut.disabled = true;
   try {
     let r;

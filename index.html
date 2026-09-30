@@ -96,6 +96,7 @@
   .xem-them { display: block; margin: 10px auto 0; background: none; border: 1px solid var(--vien); border-radius: 999px; padding: 6px 16px; font: inherit; cursor: pointer; color: var(--xanh-dam); font-weight: 600; }
 
   .chia-luoi { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  #buaSo { grid-template-columns: repeat(3, 1fr); }
   .chia-o { background: var(--vang-nhat); border-radius: 12px; padding: 12px; text-align: center; }
   .chia-o b { display: block; font-size: 26px; font-weight: 800; color: #7A5A00; }
   .chia-o span { font-size: 13px; color: var(--chu-phu); }
@@ -128,6 +129,7 @@
     .hom-nay { grid-template-columns: 1fr 1fr; }
     .luoi-2 { grid-template-columns: 1fr 1fr; }
     .chia-luoi { grid-template-columns: repeat(4, 1fr); }
+    #buaSo { grid-template-columns: repeat(3, 1fr); }
     .anh-luoi { grid-template-columns: repeat(4, 1fr); }
   }
 </style>
@@ -185,6 +187,12 @@
   </section>
 
   <section class="the">
+    <h2><span class="bieu">🍲</span>Bữa ăn chung</h2>
+    <div class="chia-luoi" id="buaSo"></div>
+    <ul class="nhat-ky" id="dsBua" style="margin-top:8px"></ul>
+  </section>
+
+  <section class="the">
     <h2><span class="bieu">📷</span>Ảnh dự án</h2>
     <div class="anh-luoi" id="anhLuoi"></div>
   </section>
@@ -208,7 +216,7 @@ function veSo() {
       <div class="phu">Cần góp ${tien(T.canGop)}</div><div class="thanh"><i style="width:${tyLe}%"></i></div></div>
     <div class="o-so"><div class="nhan">Tổng đã chi</div><div class="gt">${tien(T.tongChi)}</div><div class="phu">${D.chi.length} khoản chi</div></div>
     <div class="o-so ${T.no > 0 ? "canh" : ""}"><div class="nhan">Quỹ đang nợ</div><div class="gt">${tien(T.no)}</div><div class="phu">${T.no > 0 ? "Tiền các hộ chi hộ, chưa hoàn" : "Không nợ ai"}</div></div>
-    <div class="o-so"><div class="nhan">Gà hiện có</div><div class="gt">${so(T.gaHienCo)} con</div><div class="phu">Nhập ${so(T.gaNhap)} · hao hụt ${so(T.gaHao)}</div></div>
+    <div class="o-so"><div class="nhan">Gà hiện có</div><div class="gt">${so(T.gaHienCo)} con</div><div class="phu">Nhập ${so(T.gaNhap)} · ăn chung ${so(T.gaAn)} · hao hụt ${so(T.gaHao)}</div></div>
     <div class="o-so"><div class="nhan">Thu từ bán gà, trứng</div><div class="gt">${tien(T.thuKhac)}</div><div class="phu">Đã bán ${so(T.gaBan)} con gà</div></div>
     <div class="o-so"><div class="nhan">Trứng tháng này</div><div class="gt">${so(T.trungThangNay)} quả</div><div class="phu">Tổng ${so(T.trungTong)} · chưa chia ${so(T.trungTon)}</div></div>`;
 }
@@ -327,6 +335,18 @@ function veGa() {
     : `<tr><td class="trong" colspan="3">Chưa nhập gà.</td></tr>`;
 }
 
+function veBua() {
+  document.getElementById("buaSo").innerHTML = `
+    <div class="chia-o" style="background:var(--xanh-nhat)"><b style="color:var(--xanh-dam)">${so(T.soBua)}</b><span>bữa ăn chung</span></div>
+    <div class="chia-o" style="background:var(--xanh-nhat)"><b style="color:var(--xanh-dam)">${so(T.gaAn)}</b><span>con gà đã dùng</span></div>
+    <div class="chia-o" style="background:var(--xanh-nhat)"><b style="color:var(--xanh-dam)">${so(T.trungAn)}</b><span>quả trứng đã dùng</span></div>`;
+  document.getElementById("dsBua").innerHTML = D.bua_an.length ? D.bua_an.slice(0, 6).map(x => `
+    <li><div><div class="nd">${esc(x.ten || "Bữa ăn chung")}</div>
+      <div class="ph">${ngayVN(x.ngay)}${x.ghi_chu ? " · " + esc(x.ghi_chu) : ""}</div></div>
+      <div class="st" style="color:var(--xanh-dam)">${[x.so_ga ? `${so(x.so_ga)} gà` : "", x.so_trung ? `${so(x.so_trung)} trứng` : ""].filter(Boolean).join(" · ")}</div></li>`).join("")
+    : `<li class="trong">Chưa có bữa ăn chung nào. Gà lớn là liên hoan thôi!</li>`;
+}
+
 function veAnh() {
   const o = document.getElementById("anhLuoi");
   o.innerHTML = D.anh.length ? D.anh.map(a => `
@@ -348,7 +368,7 @@ document.getElementById("hopAnh").addEventListener("click", e => { if (e.target.
     T = tinhToan(D);
     document.getElementById("tieuDe").textContent = `${D.du_an.ten} – ${D.du_an.ten_nhom || ""}`;
     document.getElementById("phuDe").textContent = `Mã dự án ${D.du_an.ma} · ${T.hoHoatDong.length} hộ tham gia · cập nhật ${ngayVN(homNay())}`;
-    veSo(); veHomNay(); veBieuDo(); veGop(); veChia(); veNhatKy(); veGa(); veAnh();
+    veSo(); veHomNay(); veBieuDo(); veGop(); veChia(); veNhatKy(); veGa(); veBua(); veAnh();
     const nut = document.getElementById("nutExcel"); nut.disabled = false; nut.onclick = () => xuatExcel(D, T);
   } catch (err) {
     console.error(err);
